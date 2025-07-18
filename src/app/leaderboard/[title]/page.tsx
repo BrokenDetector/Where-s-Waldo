@@ -1,6 +1,4 @@
 import { db } from "@/lib/db";
-import { leaderboards, maps } from "@/lib/db/schema";
-import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { FC } from "react";
 
@@ -9,9 +7,13 @@ interface pageProps {
 }
 
 const page: FC<pageProps> = async ({ params }) => {
-	const map = await db.query.maps.findFirst({ where: eq(maps.title, params.title) });
+	const map = await db.map.findFirst({ where: { title: params.title } });
+
 	if (!map) notFound();
-	const leaderboard = await db.select().from(leaderboards).where(eq(leaderboards.map_id, map.id)).orderBy(asc(leaderboards.score));
+
+	const leaderboard = await db.leaderboard.findMany({ where: { map_id: map.id }, orderBy: { score: "asc" } });
+
+	if (!leaderboard) notFound();
 
 	return (
 		<>
