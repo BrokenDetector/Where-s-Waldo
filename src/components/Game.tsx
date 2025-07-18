@@ -20,15 +20,11 @@ const Game: FC<GameProps> = ({ map }) => {
 	const [selectedCoords, setSelectedCoords] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 	const [markers, setMarkers] = useState<{ x: number; y: number }[] | []>([]);
 	const [game, setGame] = useState(true);
-	const [characters, setCharacters] = useState<TCharacter[] | []>([]);
+	const [characters, setCharacters] = useState<TCharacter[] | []>(map.characters!);
 	const [startTimer, setStartTimer] = useState(false);
 	const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
 	const { score } = useContext(GameContext) as TGameContext;
-
-	useEffect(() => {
-		setCharacters(map.characters!);
-	}, [map, setCharacters]);
 
 	useEffect(() => {
 		if (characters.length === 0 && markers.length >= map.characters?.length!) {
@@ -64,6 +60,9 @@ const Game: FC<GameProps> = ({ map }) => {
 			toast.error("Try again", { duration: 2000 });
 		}
 		setShowDropdownMenu(false);
+		if (characters.length === 0 && markers.length >= map.characters?.length!) {
+			setGame(false);
+		}
 	};
 
 	return (
@@ -75,8 +74,17 @@ const Game: FC<GameProps> = ({ map }) => {
 					{characters.length > 0 && (
 						<div className="flex justify-center items-center gap-2 pb-4">
 							{characters.map((character) => (
-								<div key={nanoid()} className="w-32 h-auto flex items-center justify-around cursor-pointer">
-									<Image src={character.image_url} alt={""} width={48} height={48} className="size-12" />
+								<div
+									key={nanoid()}
+									className="w-32 h-auto flex items-center justify-around cursor-pointer"
+								>
+									<Image
+										src={character.image_url}
+										alt={""}
+										width={48}
+										height={48}
+										className="size-12"
+									/>
 									<h1>{character.name}</h1>
 								</div>
 							))}
@@ -107,7 +115,12 @@ const Game: FC<GameProps> = ({ map }) => {
 
 				<Markers markers={markers} />
 
-				{!game && <Modal time={score} map={map} />}
+				{!game && (
+					<Modal
+						time={score}
+						map={map}
+					/>
+				)}
 			</div>
 		</>
 	);

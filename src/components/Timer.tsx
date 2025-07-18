@@ -1,37 +1,15 @@
 import { GameContext, TGameContext } from "@/hooks/GameContext";
-import { FC, useContext, useEffect, useState } from "react";
+import { FC, useCallback, useContext, useEffect, useRef } from "react";
 
-interface Timer {
+interface TimerProps {
 	game: boolean;
 }
 
-const Timer: FC<Timer> = ({ game }) => {
-	const [currentTime, setCurrentTime] = useState<string>("00:00:00");
+const Timer: FC<TimerProps> = ({ game }) => {
 	const { setScore } = useContext(GameContext) as TGameContext;
-
-	useEffect(() => {
-		let interval: NodeJS.Timeout;
-
-		const startTimer = () => {
-			const start = new Date();
-
-			interval = setInterval(() => {
-				const elapsed = new Date().getTime() - start.getTime();
-				const formattedTime = formatTime(elapsed);
-				setCurrentTime(formattedTime);
-			}, 10);
-		};
-
-		if (game) {
-			startTimer();
-		} else {
-			setScore(currentTime);
-		}
-
-		return () => {
-			clearInterval(interval);
-		};
-	}, [game, setScore]);
+	const timerRef = useRef<HTMLParagraphElement>(null);
+	const startTimeRef = useRef<number | null>(null);
+	const animationFrameRef = useRef<number | null>(null);
 
 	const formatTime = (milliseconds: number): string => {
 		const minutes = Math.floor(milliseconds / (1000 * 60))
@@ -43,12 +21,41 @@ const Timer: FC<Timer> = ({ game }) => {
 		const ms = Math.floor(milliseconds % 1000)
 			.toString()
 			.padStart(3, "0");
-
 		return `${minutes}:${seconds}:${ms}`;
 	};
+
+	const updateTimer = useCallback(() => {
+		if (!startTimeRef.current || !timerRef.current) return;
+
+		const elapsed = Date.now() - startTimeRef.current;
+		timerRef.current.textContent = `Time: ${formatTime(elapsed)}`;
+
+		animationFrameRef.current = requestAnimationFrame(updateTimer);
+	}, []);
+
+	useEffect(() => {
+		if (game) {
+			startTimeRef.current = Date.now();
+			animationFrameRef.current = requestAnimationFrame(updateTimer);
+		} else if (startTimeRef.current) {
+			const elapsed = Date.now() - startTimeRef.current;
+			setScore(formatTime(elapsed));
+
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current);
+			}
+		}
+
+		return () => {
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current);
+			}
+		};
+	}, [game, setScore, updateTimer]);
+
 	return (
 		<div>
-			<p>Time: {currentTime}</p>
+			<p ref={timerRef}>Time: 00:00:000</p>
 		</div>
 	);
 };
